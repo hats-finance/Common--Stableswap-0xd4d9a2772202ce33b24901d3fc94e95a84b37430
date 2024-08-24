@@ -62,17 +62,19 @@ The smart contract is implemented in ink! smart contract language and adapted to
 ## Medium severity issues
 
 
-- **Allowing Forceful Rate Updates Lets Users Manipulate Prices for Economic Gains**
+- **Function `force_update_rate` can reset expiration timer without updating stale price**
 
-  The core problem involves the `force_update_rate` function, which any user can call to update a token rate's timestamp without checking if the rate has actually changed. This can be exploited in the following way: if Token A's Oracle becomes stale, a malicious user (Bob) can continually call `force_update_rate` to reset the token rate's expiration timer, even though the rate remains outdated. Once the Oracle returns to a normal state, Bob can execute a trade (`swap_exact_in`) using the stale price since the system would still consider the rates current due to the manipulated timestamps. This issue can also affect honest users unintentionally. To prevent exploitation, it is recommended to avoid updating the timestamp if the price hasn't changed.
+  A vulnerability in the `force_update_rate` function allows any user to forcefully update the price rate and manipulate the system. This function updates the timestamp `last_token_rate_update_ts` to the current time regardless of whether the price has changed. This scenario can be exploited as follows: if a token's Oracle becomes stale, a malicious user (Bob) can continually call `force_update_rate`, resetting the expiration timer without price changes. Consequently, when the token returns to an unstale state, Bob can execute a swap using the stale price before it accurately updates. This flaw enables manipulation of rates, impacting users who may unknowingly suffer from this behavior. Recommendations include preventing `last_token_rate_update_ts` from updating when the price remains unchanged to mitigate such exploits.
 
 
   **Link**: [Issue #27](https://github.com/hats-finance/Common--Stableswap-0xd4d9a2772202ce33b24901d3fc94e95a84b37430/issues/27)
 
 
-- **Potential Loss in Stableswap Pools Due to Changes in Amplification Coefficient**
+- **Potential Vulnerability in Adjustment of Amplification Coefficient in Stableswap Pools**
 
-  Stableswap pools use an amplification coefficient (A) that can be adjusted based on the stablecoins' peg and liquidity concentration needs. An admin can schedule adjustments to A using the `set_amp_coef` function, potentially exposing the pool to a loss if increased or decreased too drastically. One attack scenario involves an attacker exploiting this change by using a flash loan to imbalance the pool, timing the A change, and swapping in reverse for a profit, causing a loss to the Automated Market Maker (AMM) token inventory. The article recommends a gradual change of 0.1% per block, but this is challenging to manage manually. Implementing a ramping up method for A, similar to that in StableSwap Curve contracts, is suggested for safer operations.
+  Stableswap pools use an amplification coefficient (A) to adjust liquidity concentration and maintain the stablecoin peg. This coefficient can be altered by an admin using the `set_amp_coef` function to account for varying liquidity needs or changes in the stablecoin peg. However, improper changes to A, especially downward adjustments, can expose the pool to significant losses. 
+
+An attacker might exploit this by detecting an admin's change to A, using a flashloan to imbalance the pool before the change, and then reversing the swap to profit, causing a loss to the Automated Market Maker (AMM) token inventory. The recommended solution is to implement a gradual adjustment mechanism for A, similar to what's done in StableSwap Curve contracts.
 
 
   **Link**: [Issue #39](https://github.com/hats-finance/Common--Stableswap-0xd4d9a2772202ce33b24901d3fc94e95a84b37430/issues/39)
@@ -80,9 +82,9 @@ The smart contract is implemented in ink! smart contract language and adapted to
 ## Low severity issues
 
 
-- **Validation Missing for Amount Value in Stable Pool Liquidity Functions**
+- **Unchecked Amounts in Stable Pool Liquidity Operations Allow Zero Value Transactions**
 
-  The current implementation of liquidity addition/removal in the stable pool only checks if the input vector length matches the token length, but doesn't verify the amounts. This can lead to zero amounts passing successfully, causing potentially disruptive events in the frontend application. Validation of input amounts is needed.
+  In the stable pool, when adding or removing liquidity, the input vector's length is checked against the token length, but the amounts are not validated. This oversight allows transactions with zero amounts to pass and emit events, potentially causing front-end application issues due to event spamming. The amounts should be validated.
 
 
   **Link**: [Issue #37](https://github.com/hats-finance/Common--Stableswap-0xd4d9a2772202ce33b24901d3fc94e95a84b37430/issues/37)
@@ -91,7 +93,7 @@ The smart contract is implemented in ink! smart contract language and adapted to
 
 ## Conclusion
 
-In conclusion, the Hats.finance audit competition for Common: Stableswap successfully demonstrated the effectiveness of decentralized auditing. This two-week competition attracted 39 submissions, rewarded three participants with a total payout of $11,694.09 out of the maximum $29,984.85, and identified several vulnerabilities. Medium-severity issues included the ability for users to manipulate token rates via the `force_update_rate` function, potentially leading to economic gains, and the risk of destabilizing pools due to abrupt changes in the amplification coefficient. Low-severity issues were also noted, such as the lack of input amount validation in liquidity functions, which could cause front-end disruptions. These findings underline the importance of such audit competitions in uncovering potential vulnerabilities proactively, ensuring robust, secure DeFi protocols. Overall, the event underscored Hats.finance's commitment to decentralized, cost-efficient, and high-quality security assessments, setting new standards for Web3 security.
+The audit for Common: Stableswap hosted by Hats.finance concluded with three participants uncovering various vulnerabilities, earning a total payout of $11,694.09 from a maximum reward of $29,984.85. Two medium severity issues were identified. The first vulnerability pertains to the `force_update_rate` function, which allows abuse by updating the expiration timer without changing the stale price, potentially leading to rate manipulation. The second issue concerns the improper adjustment of the amplification coefficient (A) by admins, which might be exploited via flashloans to cause substantial losses to the Automated Market Maker (AMM). A solution for this includes implementing a gradual adjustment mechanism for A. Additionally, a low severity issue was identified, revealing that zero-value transactions could occur during stable pool liquidity operations due to unchecked amounts, potentially resulting in event spamming. Overall, the audit highlights the effectiveness of decentralized audit competitions in identifying and addressing critical security flaws promptly.
 
 ## Disclaimer
 
